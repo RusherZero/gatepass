@@ -1,0 +1,1534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gatepass</title>
+<meta name="description" content="Boarding passes and flight info, kept on your device and available offline.">
+<meta name="theme-color" content="#E9EEF1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D151E" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gatepass">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{
+  --paper:#E9EEF1; --surface:#FFFFFF; --ink:#142235; --muted:#56677A; --rule:#CBD5DD;
+  --route:#B0186A; --route-soft:#F7E0EC;
+  --ok:#1E7652; --ok-soft:#DDF1E7; --warn:#8F5400; --warn-soft:#FBEBD0; --bad:#B3261E; --bad-soft:#F9DEDC;
+  --cond:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0D151E; --surface:#152230; --ink:#E4EBF1; --muted:#97A7B8; --rule:#27394B;
+    --route:#F06AAE; --route-soft:#3A1A2C;
+    --ok:#5CCB95; --ok-soft:#14301F; --warn:#F2B451; --warn-soft:#3A2A10; --bad:#F3796E; --bad-soft:#3D1A17;
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font:400 16px/1.5 var(--body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+/* Top bar */
+.top{display:flex;align-items:center;gap:12px;max-width:640px;margin:0 auto;padding:18px 20px 6px}
+.top h1{margin:0;font:700 30px/1 var(--cond);letter-spacing:.01em;flex:1}
+.net{font:500 14px/1 var(--body);color:var(--warn);background:var(--warn-soft);padding:6px 10px;border-radius:999px}
+.icon-btn{width:44px;height:44px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;color:var(--muted)}
+.icon-btn svg{width:24px;height:24px}
+
+main{max-width:640px;margin:0 auto;padding:4px 16px 120px}
+main h2{font:600 15px/1.2 var(--body);color:var(--muted);margin:22px 4px 10px}
+.stack{display:grid;gap:14px}
+
+/* Pass card */
+.pass{position:relative;display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:16px 18px 0;color:inherit}
+.pass-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fl{font:600 17px/1.2 var(--cond);letter-spacing:.02em}
+.date{color:var(--muted);font-size:15px;flex:1;white-space:nowrap}
+.sample-tag{margin-left:auto;align-self:center}
+.pill{font:600 13px/1 var(--body);padding:6px 10px;border-radius:999px;background:var(--paper);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.route{background:var(--route-soft);color:var(--route)}
+
+.route{display:grid;grid-template-columns:auto 1fr auto;align-items:end;column-gap:12px;margin:10px 0 12px}
+.end{display:flex;flex-direction:column;min-width:0}
+.end.to{text-align:right;align-items:flex-end}
+.meta-from{grid-column:1 / 3}
+.meta-from,.meta-to{align-self:start}
+.plus{font:600 14px/1 var(--body);color:var(--muted);vertical-align:top;position:relative;top:2px}
+.detail .pill:not(.ok):not(.warn):not(.bad):not(.route){background:var(--surface);box-shadow:inset 0 0 0 1px var(--rule)}
+.meta-to{grid-column:3}
+.code{font:700 46px/.95 var(--cond);letter-spacing:.01em}
+.time{font:600 20px/1.2 var(--cond);margin-top:4px}
+.time s{color:var(--muted);font-weight:500;font-size:16px;margin-right:6px}
+.city{color:var(--muted);font-size:14px;line-height:1.3;max-width:9.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arc{position:relative;height:34px;margin:0 2px 10px}
+.arc::before{content:"";position:absolute;inset:0;border:2px dashed var(--route);border-bottom:0;border-radius:50% 50% 0 0 / 100% 100% 0 0;opacity:.85}
+.plane{position:absolute;left:calc(var(--px) * 100%);top:calc(var(--py) * 100%);width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--surface);display:grid;place-items:center;color:var(--route);transform:rotate(var(--rot));transition:left .8s ease,top .8s ease,transform .8s ease}
+.plane svg{width:20px;height:20px}
+
+/* stub: tear line with notches */
+.stub{position:relative;display:flex;gap:22px;flex-wrap:wrap;margin:0 -18px;padding:12px 18px 14px;border-top:2px dashed var(--rule)}
+.stub::before,.stub::after{content:"";position:absolute;top:-11px;width:20px;height:20px;border-radius:50%;background:var(--paper);border:1px solid var(--rule)}
+.stub::before{left:-11px;clip-path:inset(0 0 0 50%)}
+.stub::after{right:-11px;clip-path:inset(0 50% 0 0)}
+.kv{display:flex;flex-direction:column}
+.kv span{font-size:13px;color:var(--muted);line-height:1.2}
+.kv b{font:600 20px/1.25 var(--cond);letter-spacing:.02em}
+.pass.no-stub{padding-bottom:4px}
+
+.past summary{cursor:pointer;font:600 15px/1.2 var(--body);color:var(--muted);margin:26px 4px 10px;list-style-position:inside}
+.past .pass{opacity:.8}
+
+.empty{text-align:center;padding:64px 16px}
+.empty h2{font:700 28px/1.1 var(--cond);color:var(--ink);margin:0 0 8px}
+.empty p{color:var(--muted);max-width:30em;margin:0 auto 20px}
+
+.fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:14px 22px 14px 18px;background:var(--ink);color:var(--paper);font:600 17px/1 var(--body);box-shadow:0 6px 20px rgba(10,20,35,.25)}
+.fab svg{width:22px;height:22px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:12px;border:1px solid var(--rule);background:var(--surface);font-weight:600;text-decoration:none;color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.danger{color:var(--bad)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.55}
+.text-btn{border:0;background:none;color:var(--route);font-weight:600;padding:10px 4px;min-height:44px}
+.text-btn.strong{font-weight:700}
+
+/* Dialogs */
+dialog{border:0;padding:0;color:var(--ink);background:var(--paper)}
+dialog::backdrop{background:rgba(6,12,20,.55)}
+dialog.sheet{width:100%;max-width:640px;height:100%;max-height:none;margin:0 auto}
+@media (min-width:700px){dialog.sheet{height:calc(100% - 48px);margin:24px auto;border-radius:18px}}
+.sheet-inner{display:flex;flex-direction:column;height:100%}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:calc(6px + env(safe-area-inset-top,0px)) 14px 6px;border-bottom:1px solid var(--rule)}
+.sheet-head h2{flex:1;margin:0;text-align:center;font:600 17px/1.2 var(--body)}
+.sheet-body{flex:1;overflow:auto;padding:18px 18px calc(28px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}
+dialog.action{margin:auto auto 0;width:100%;max-width:520px;border-radius:20px 20px 0 0;background:var(--surface);padding:10px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+@media (min-width:700px){dialog.action{margin:auto;border-radius:20px;padding-bottom:16px}}
+.action h2{font:700 24px/1.1 var(--cond);margin:10px 4px 14px}
+.choice{display:flex;gap:14px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:12px 6px;border-radius:12px}
+.choice:hover{background:var(--paper)}
+.choice svg{width:26px;height:26px;color:var(--route);flex:none}
+.choice b{display:block;font-weight:600}
+.choice span{display:block;color:var(--muted);font-size:14px;line-height:1.35}
+
+/* Detail */
+.d-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.d-fl{font:700 26px/1 var(--cond);letter-spacing:.02em}
+.d-airline{color:var(--muted)}
+.detail .code{font-size:clamp(40px,13vw,60px)}
+.detail .plane{background:var(--paper)}
+.detail .time{font-size:24px}
+.detail .arc{height:44px;margin-bottom:14px}
+.d-date{color:var(--muted);margin:2px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:14px 16px;padding:16px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin:14px 0}
+.sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:14px;margin:4px 0 16px}
+.sync .text-btn{padding:6px 0;min-height:0}
+.note{border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.4;margin:0 0 16px;background:var(--surface);border:1px solid var(--rule)}
+.note.bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.note.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.people{display:grid;gap:10px;margin:0 0 18px}
+.doc{border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:#fff;margin:6px 0 12px}
+.doc img{display:block;width:100%;height:auto}
+.doc iframe{display:block;width:100%;height:70vh;border:0}
+.actions{display:grid;gap:10px;margin-top:18px}
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;min-width:0}
+.field label{font-size:14px;font-weight:600;color:var(--muted)}
+.field input,.field select{width:100%;min-height:48px;border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:17px}
+.field input.upper{text-transform:uppercase;font:600 20px/1 var(--cond);letter-spacing:.04em}
+.field small{color:var(--muted);font-size:13px}
+.row{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.row.r3{grid-template-columns:.8fr 1fr 1.4fr}
+.attach{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px dashed var(--rule);border-radius:12px;padding:12px 14px;margin-top:6px}
+.attach p{margin:0;flex:1;min-width:10em;color:var(--muted);font-size:15px}
+.attach .text-btn{min-height:0;padding:4px 0}
+fieldset{border:0;padding:0;margin:0 0 6px}
+legend{font:700 20px/1.2 var(--cond);padding:0;margin:8px 0 12px}
+
+/* Scanner */
+#dlgScan{background:#000;color:#fff;width:100%;height:100%;max-width:none;max-height:none;margin:0}
+.scan-wrap{position:relative;height:100%;display:grid;place-items:center}
+#scanVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scan-frame{position:relative;width:min(80vw,420px);aspect-ratio:1.6;border:3px solid rgba(255,255,255,.9);border-radius:16px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.scan-bar{position:absolute;left:0;right:0;bottom:0;padding:16px 20px calc(20px + env(safe-area-inset-bottom,0px));text-align:center}
+.scan-bar p{margin:0 0 12px}
+.scan-close{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;color:#fff;background:rgba(0,0,0,.4)}
+
+/* Gate mode: always white for scanners */
+#dlgGate{background:#fff;color:#111;width:100%;height:100%;max-width:none;max-height:none;margin:0;color-scheme:light}
+.gate{display:flex;flex-direction:column;height:100%;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.gate-top{display:flex;align-items:center;gap:12px}
+.gate-top b{font:700 30px/1 var(--cond);flex:1}
+.gate-top span{font:600 18px/1 var(--cond);color:#444}
+.gate-top .icon-btn{color:#111}
+.gate-doc{flex:1;display:grid;place-items:center;min-height:0;margin-top:10px}
+.gate-doc img{max-width:100%;max-height:100%;object-fit:contain}
+.gate-doc iframe{width:100%;height:100%;border:0}
+.gate-hint{text-align:center;color:#555;font-size:14px;margin:8px 0 0}
+
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;max-width:min(92vw,480px);background:var(--ink);color:var(--paper);padding:12px 16px;border-radius:12px;font-size:15px;line-height:1.35;transition:opacity .2s,transform .2s;pointer-events:none;z-index:10}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.settings section{margin:0 0 26px}
+.settings h3{font:700 22px/1.2 var(--cond);margin:0 0 6px}
+.settings p{color:var(--muted);margin:0 0 12px;max-width:34em}
+.settings a{color:var(--route)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+
+.net.demo{background:var(--route-soft);color:var(--route);border:0;font-weight:600;min-height:32px}
+.doc-h{font:700 22px/1.2 var(--cond);margin:24px 0 10px}
+.toggle{display:flex;align-items:center;gap:12px;min-height:48px;font-weight:600;margin:0 0 6px}
+.toggle input{width:24px;height:24px;accent-color:var(--route);flex:none}
+.clock-label{font-weight:600;margin-bottom:8px}
+.log{list-style:none;margin:0;padding:0;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.log li{padding:8px 10px;border-bottom:1px solid var(--rule);word-break:break-all}
+.log li:last-child{border-bottom:0}
+.log li.bad{color:var(--bad)}
+#demoTools{margin:14px 0 0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Gatepass</h1>
+  <span class="net" id="net" hidden>Offline</span>
+  <button class="net demo" id="demoPill" hidden>Demo mode</button>
+  <button class="icon-btn" id="btnSettings" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+
+<main id="list" aria-live="polite"></main>
+
+<button class="fab" id="btnAdd">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Add pass
+</button>
+
+<input type="file" id="fileImport" accept="image/*,application/pdf" hidden>
+<input type="file" id="fileAttach" accept="image/*,application/pdf" hidden>
+<input type="file" id="fileBackup" accept="application/json,.json" hidden>
+
+<!-- Add choices -->
+<dialog id="dlgAdd" class="action" aria-labelledby="addTitle">
+  <h2 id="addTitle">Add a boarding pass</h2>
+  <button class="choice" id="optScan" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 9v6M10 9v6M13 9v6M17 9v6"/></svg>
+    <div><b>Scan the barcode</b><span>Point your camera at a paper or on-screen pass. Flight details fill in automatically.</span></div>
+  </button>
+  <button class="choice" id="optImport">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M12 12v6M9 15l3 3 3-3"/></svg>
+    <div><b>Import a screenshot or PDF</b><span>Saved on this device so you can show it at the gate without signal.</span></div>
+  </button>
+  <button class="choice" id="optManual">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>
+    <div><b>Enter flight details</b><span>Type the airline, flight number and date.</span></div>
+  </button>
+  <button class="btn block" data-close style="margin-top:8px">Cancel</button>
+</dialog>
+
+<!-- Detail -->
+<dialog id="dlgDetail" class="sheet" aria-label="Flight details">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <button class="text-btn" data-close>Close</button>
+      <h2 id="detailTitle"></h2>
+      <button class="text-btn" id="btnEdit">Edit</button>
+    </div>
+    <div class="sheet-body detail" id="detailBody"></div>
+  </div>
+</dialog>
+
+<!-- Editor -->
+<dialog id="dlgEdit" class="sheet" aria-labelledby="editTitle">
+  <form class="sheet-inner" id="editForm" novalidate>
+    <div class="sheet-head">
+      <button type="button" class="text-btn" data-close>Cancel</button>
+      <h2 id="editTitle">New pass</h2>
+      <button type="submit" class="text-btn strong">Save</button>
+    </div>
+    <div class="sheet-body">
+      <div id="editNote"></div>
+      <fieldset>
+        <legend>Flight</legend>
+        <div class="row r3">
+          <div class="field"><label for="fCarrier">Airline</label><input id="fCarrier" name="carrier" class="upper" maxlength="3" autocomplete="off" autocapitalize="characters" placeholder="LH" required></div>
+          <div class="field"><label for="fNo">Number</label><input id="fNo" name="flightNo" class="upper" maxlength="5" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="400" required></div>
+          <div class="field"><label for="fDate">Date</label><input id="fDate" name="date" type="date" required></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="fFrom">From</label><input id="fFrom" name="from" class="upper" maxlength="3" autocomplete="off" autocapitalize="characters" placeholder="FRA"></div>
+          <div class="field"><label for="fTo">To</label><input id="fTo" name="to" class="upper" maxlength="3" autocomplete="off" autocapitalize="characters" placeholder="JFK"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="fDep">Departs</label><input id="fDep" name="depTime" type="time"></div>
+          <div class="field"><label for="fBoard">Boarding</label><input id="fBoard" name="boardingTime" type="time"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="fSeat">Seat</label><input id="fSeat" name="seat" class="upper" maxlength="4" autocomplete="off" autocapitalize="characters"></div>
+          <div class="field"><label for="fGate">Gate</label><input id="fGate" name="gate" class="upper" maxlength="6" autocomplete="off" autocapitalize="characters"></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Passenger</legend>
+        <div class="field"><label for="fName">Name</label><input id="fName" name="passenger" autocomplete="name"></div>
+        <div class="field"><label for="fPnr">Booking reference</label><input id="fPnr" name="pnr" class="upper" maxlength="8" autocomplete="off" autocapitalize="characters"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Boarding pass</legend>
+        <div class="attach" id="editFile"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Ticket</legend>
+        <div class="attach" id="editTicket"></div>
+      </fieldset>
+    </div>
+  </form>
+</dialog>
+
+<!-- Settings -->
+<dialog id="dlgSettings" class="sheet" aria-labelledby="setTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <button class="text-btn" data-close>Done</button>
+      <h2 id="setTitle">Settings</h2>
+      <span style="width:52px"></span>
+    </div>
+    <div class="sheet-body settings">
+      <section>
+        <h3>Demo mode</h3>
+        <p>Try the app with a fictional itinerary and a built-in mock flight service. It needs no key or internet, and nothing leaves your device.</p>
+        <label class="toggle"><input type="checkbox" id="sDemo"><span>Use demo mode</span></label>
+        <div id="demoTools" hidden>
+          <div class="field">
+            <label>Demo clock</label>
+            <div class="clock-label num" id="demoClockLabel"></div>
+            <div class="btn-row">
+              <button class="btn" data-adv="30">+30 min</button><button class="btn" data-adv="60">+1 h</button><button class="btn" data-adv="180">+3 h</button><button class="btn" id="btnClockReset">Reset</button>
+            </div>
+            <small>Moves the sample flights forward, so you can watch check-in, a gate change, a delay, boarding, departure and landing.</small>
+          </div>
+          <div class="field">
+            <label for="sFault">Mock service response</label>
+            <select id="sFault">
+              <option value="none">Works normally</option>
+              <option value="notfound">Flight not found (404)</option>
+              <option value="rate">Rate limited (429)</option>
+              <option value="error">Server error (500)</option>
+              <option value="network">Network failure</option>
+            </select>
+            <small>Applies to the next refresh. Saved flight info stays on screen when a refresh fails.</small>
+          </div>
+          <div class="field">
+            <label>Mock API calls</label>
+            <ol class="log" id="demoLog"></ol>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn" id="btnDemoAdd" hidden>Add sample itinerary</button>
+          <button class="btn danger" id="btnDemoRemove" hidden>Remove sample passes</button>
+        </div>
+      </section>
+      <section>
+        <h3>Live flight info</h3>
+        <p>Gate, terminal, delays and status come from AeroDataBox. Get a free key on <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" rel="noopener">RapidAPI</a> and paste it here. The key stays on this device.</p>
+        <div class="field"><label for="sKey">AeroDataBox key</label><input id="sKey" type="password" autocomplete="off" spellcheck="false"></div>
+        <div class="btn-row"><button class="btn primary" id="btnSaveKey">Save key</button><button class="btn" id="btnShowKey">Show</button></div>
+      </section>
+      <section>
+        <h3>Storage</h3>
+        <p id="storageInfo">Checking storage…</p>
+        <div class="btn-row">
+          <button class="btn" id="btnExport">Export backup</button>
+          <button class="btn" id="btnImport">Restore backup</button>
+        </div>
+      </section>
+      <section>
+        <h3>Erase everything</h3>
+        <p>Deletes all passes, files and your key from this device.</p>
+        <button class="btn danger" id="btnWipe">Erase all data</button>
+      </section>
+    </div>
+  </div>
+</dialog>
+
+<!-- Scanner -->
+<dialog id="dlgScan" aria-label="Scan barcode">
+  <div class="scan-wrap">
+    <video id="scanVideo" playsinline muted></video>
+    <div class="scan-frame" aria-hidden="true"></div>
+    <button class="icon-btn scan-close" data-close aria-label="Close scanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="scan-bar"><p id="scanMsg">Fit the barcode inside the frame.</p></div>
+  </div>
+</dialog>
+
+<!-- Gate mode -->
+<dialog id="dlgGate" aria-label="Boarding pass">
+  <div class="gate">
+    <div class="gate-top">
+      <b id="gateTitle"></b><span id="gateSeat"></span>
+      <button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="gate-doc" id="gateDoc"></div>
+    <p class="gate-hint">Turn your screen brightness up for the scanner.</p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const PLANE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.5 13.5 9V4.5a1.5 1.5 0 0 0-3 0V9L3 12.5V14l7.5-2v4.5L8.5 18v1.5l3.5-1 3.5 1V18l-2-1.5V12l7.5 2z"/></svg>';
+const API_HOST = 'aerodatabox.p.rapidapi.com';
+
+/* ---------- IndexedDB (everything stays on the device) ---------- */
+const DB = (() => {
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('gatepass', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('passes', { keyPath: 'id' });
+      d.createObjectStore('files', { keyPath: 'id' });
+      d.createObjectStore('kv');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  const run = async (store, mode, fn) => {
+    const d = await open();
+    return new Promise((res, rej) => {
+      const t = d.transaction(store, mode);
+      const req = fn(t.objectStore(store));
+      t.oncomplete = () => res(req ? req.result : undefined);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error);
+    });
+  };
+  return {
+    all: (s) => run(s, 'readonly', (st) => st.getAll()),
+    get: (s, k) => run(s, 'readonly', (st) => st.get(k)),
+    put: (s, v, k) => run(s, 'readwrite', (st) => (k === undefined ? st.put(v) : st.put(v, k))),
+    del: (s, k) => run(s, 'readwrite', (st) => st.delete(k)),
+    clear: (s) => run(s, 'readwrite', (st) => st.clear()),
+  };
+})();
+
+/* ---------- State ---------- */
+let passes = [];
+let apiKey = '';
+const busy = new Set();
+const errors = {};
+let detailId = null;
+let detailUrls = [];
+let docCache = { key: '', html: '' };
+const DEMO = { on: false, offset: 0, epoch: 0, fault: 'none', log: [] };
+const useMock = (p) => DEMO.on && !!p && (p.demo || p.carrier === 'ZZ');
+const nowFor = (p) => (useMock(p) ? Date.now() + DEMO.offset : Date.now());
+function canFetch(p) { if (useMock(p)) return true; if (p.demo) return false; return !!apiKey; }
+let gateUrl = null;
+let wakeLock = null;
+let scanFormats = [];
+let editing = null;      // pass being edited, or null for new
+let draftFiles = {};     // slot -> {blob,name,type} pending attachment
+let removeFiles = {};    // slot -> true when the saved file should be removed
+let attachSlot = 'fileId';
+
+/* ---------- Time helpers ---------- */
+const pad = (n) => String(n).padStart(2, '0');
+const isoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayISO = () => isoDate(new Date());
+const utcMs = (t) => {
+  if (!t || !t.utc) return null;
+  const ms = Date.parse(String(t.utc).trim().replace(' ', 'T'));
+  return Number.isNaN(ms) ? null : ms;
+};
+const hm = (t) => {
+  const m = t && t.local && String(t.local).match(/\d{4}-\d{2}-\d{2}[ T](\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+};
+const localDay = (t) => {
+  const m = t && t.local && String(t.local).match(/(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+};
+function fmtDate(iso, long) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, long
+    ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+    : { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function fmtDur(min) {
+  min = Math.abs(Math.round(min));
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+function ago(ms) {
+  const s = (Date.now() - ms) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  const d = Math.round(s / 86400);
+  return d === 1 ? 'yesterday' : `${d} days ago`;
+}
+
+/* ---------- IATA boarding pass barcode (BCBP) ---------- */
+function julianToISO(j) {
+  if (!j || j > 366) return '';
+  const now = new Date();
+  let best = null;
+  for (const y of [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]) {
+    const d = new Date(y, 0, j);
+    if (d.getFullYear() !== y) continue;
+    const diff = Math.abs(d - now);
+    if (!best || diff < best.diff) best = { d, diff };
+  }
+  return best ? isoDate(best.d) : '';
+}
+function prettyName(raw) {
+  if (!raw) return '';
+  let [last, first = ''] = raw.split('/');
+  first = first.replace(/\s+(MR|MRS|MS|MISS|MSTR|DR|PROF|CHD|INF)$/i, '');
+  const tc = (s) => s.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (c) => c.toUpperCase()).trim();
+  return [tc(first), tc(last)].filter(Boolean).join(' ');
+}
+function parseBCBP(raw) {
+  const s = String(raw || '').replace(/[\r\n]/g, '');
+  if (!/^M[1-4]/.test(s) || s.length < 58) return null;
+  const n = Number(s[1]);
+  const passenger = prettyName(s.slice(2, 22).trim());
+  const legs = [];
+  let p = 23;
+  const strip0 = (x) => x.trim().replace(/^0+(?=\w)/, '');
+  for (let i = 0; i < n; i++) {
+    const L = s.slice(p, p + 35);
+    if (L.length < 35) break;
+    legs.push({
+      pnr: L.slice(0, 7).trim(),
+      from: L.slice(7, 10).trim(),
+      to: L.slice(10, 13).trim(),
+      carrier: L.slice(13, 16).trim(),
+      flightNo: strip0(L.slice(16, 21)),
+      date: julianToISO(parseInt(L.slice(21, 24), 10)),
+      seat: strip0(L.slice(25, 29)),
+    });
+    const size = parseInt(s.slice(p + 35, p + 37), 16) || 0;
+    p += 37 + size;
+  }
+  return legs.length ? { passenger, legs } : null;
+}
+
+/* ---------- Flight data ---------- */
+function tm(o, key) {
+  const x = o && o[key + 'Time'];
+  if (x && (x.utc || x.local)) return { utc: x.utc, local: x.local };
+  if (o && (o[key + 'TimeLocal'] || o[key + 'TimeUtc'])) return { utc: o[key + 'TimeUtc'], local: o[key + 'TimeLocal'] };
+  return null;
+}
+function move(a) {
+  if (!a) return {};
+  const ap = a.airport || {};
+  return {
+    iata: ap.iata, name: ap.shortName || ap.name, city: ap.municipalityName,
+    sched: tm(a, 'scheduled'), revised: tm(a, 'revised'), predicted: tm(a, 'predicted'), runway: tm(a, 'runway') || tm(a, 'actual'),
+    terminal: a.terminal, gate: a.gate, checkIn: a.checkInDesk, belt: a.baggageBelt,
+  };
+}
+function normalize(f) {
+  return {
+    status: f.status, number: f.number, airline: f.airline && f.airline.name,
+    aircraft: f.aircraft && f.aircraft.model, reg: f.aircraft && f.aircraft.reg,
+    distanceKm: f.greatCircleDistance && f.greatCircleDistance.km,
+    dep: move(f.departure), arr: move(f.arrival),
+  };
+}
+const fdata = (p) => (p.flight && p.flight.data) || null;
+const depBest = (f) => f && (f.dep.revised || f.dep.sched);
+const arrBest = (f) => f && (f.arr.revised || f.arr.predicted || f.arr.sched);
+
+function delayMin(m) {
+  const s = utcMs(m && m.sched), r = utcMs(m && m.revised);
+  return s && r ? Math.round((r - s) / 60000) : null;
+}
+function statusOf(p) {
+  const f = fdata(p);
+  if (!f) return null;
+  const map = {
+    Expected: ['Scheduled', ''], CheckIn: ['Check-in open', ''], Boarding: ['Boarding', 'route'], GateClosed: ['Gate closed', 'warn'],
+    Departed: ['Departed', 'route'], EnRoute: ['In the air', 'route'], Approaching: ['Landing soon', 'route'], Arrived: ['Arrived', 'ok'],
+    Delayed: ['Delayed', 'warn'], Canceled: ['Cancelled', 'bad'], CanceledUncertain: ['May be cancelled', 'bad'], Diverted: ['Diverted', 'bad'],
+  };
+  let [label, tone] = map[f.status] || ['', ''];
+  if (['Expected', 'CheckIn', 'Delayed'].includes(f.status) || !label) {
+    const d = delayMin(f.dep);
+    if (d !== null && d >= 15) { label = `Delayed ${fmtDur(d)}`; tone = 'warn'; }
+    else if (d !== null && (f.status === 'Expected' || !label)) { label = 'On time'; tone = 'ok'; }
+  }
+  return label ? { label, tone } : null;
+}
+function progress(p) {
+  const f = fdata(p);
+  if (!f) return isPast(p) ? 1 : 0;
+  if (f.status === 'Arrived') return 1;
+  if (['Departed', 'EnRoute', 'Approaching'].includes(f.status)) {
+    const a = utcMs(f.dep.runway) || utcMs(depBest(f)), b = utcMs(arrBest(f));
+    if (a && b && b > a) return Math.min(0.97, Math.max(0.03, (nowFor(p) - a) / (b - a)));
+    return 0.5;
+  }
+  return isPast(p) ? 1 : 0;
+}
+function sortKey(p) {
+  const f = fdata(p);
+  const u = f && utcMs(f.dep.sched);
+  if (u) return u;
+  return Date.parse(`${p.date}T${p.depTime || '12:00'}`) || 0;
+}
+function isPast(p) {
+  const f = fdata(p);
+  const a = f && utcMs(arrBest(f));
+  if (a) return a < nowFor(p) - 3 * 3600e3;
+  return (p.date || '') < isoDate(new Date(nowFor(p)));
+}
+
+/* ---------- Rendering ---------- */
+function arcHTML(p) {
+  const t = progress(p);
+  const u = Math.max(-0.97, Math.min(0.97, 2 * t - 1));
+  const y = 1 - Math.sqrt(1 - u * u);
+  const slope = (2 * u) / Math.sqrt(1 - u * u) / 3.5;
+  const rot = 90 + (Math.atan(slope) * 180) / Math.PI;
+  return `<div class="arc" aria-hidden="true"><span class="plane" style="--px:${t.toFixed(3)};--py:${y.toFixed(3)};--rot:${rot.toFixed(1)}deg">${PLANE}</span></div>`;
+}
+function timesFor(m, fallback) {
+  const best = m && (m.revised || m.predicted || m.sched);
+  const now = hm(best) || fallback || '';
+  const sched = hm(m && m.sched);
+  return now && sched && now !== sched ? `<s>${sched}</s>${now}` : now;
+}
+function shiftHM(t, min) {
+  const m = /^(\d{2}):(\d{2})$/.exec(t || '');
+  if (!m || !min) return t || '';
+  let x = (Number(m[1]) * 60 + Number(m[2]) + min) % 1440;
+  if (x < 0) x += 1440;
+  return `${pad(Math.floor(x / 60))}:${pad(x % 60)}`;
+}
+function boardingFor(p) {
+  const f = fdata(p);
+  const d = f ? delayMin(f.dep) : null;
+  return p.boardingTime ? shiftHM(p.boardingTime, d >= 5 ? d : 0) : '';
+}
+function stubItems(p) {
+  const f = fdata(p);
+  const items = [];
+  const term = f && f.dep.terminal;
+  const gate = (f && f.dep.gate) || p.gate;
+  const bt = boardingFor(p);
+  if (bt) items.push(['Boarding', bt]);
+  if (term) items.push(['Terminal', term]);
+  if (gate) items.push(['Gate', gate]);
+  if (p.seat) items.push(['Seat', p.seat]);
+  return items;
+}
+function card(p) {
+  const f = fdata(p);
+  const st = statusOf(p);
+  const items = stubItems(p);
+  const dep = f ? f.dep : {}, arr = f ? f.arr : {};
+  return `<button class="pass${items.length ? '' : ' no-stub'}" data-id="${esc(p.id)}" aria-label="${esc(`${p.carrier} ${p.flightNo} from ${p.from || 'unknown'} to ${p.to || 'unknown'}, ${fmtDate(p.date, true)}`)}">
+    <div class="pass-head"><span class="fl">${esc(p.carrier)} ${esc(p.flightNo)}</span><span class="date">${esc(fmtDate(p.date))}</span>${st ? `<span class="pill ${st.tone}">${esc(st.label)}</span>` : ''}</div>
+    <div class="route">
+      <span class="code">${esc(p.from || dep.iata || '···')}</span>${arcHTML(p)}<span class="code">${esc(p.to || arr.iata || '···')}</span>
+      <div class="end meta-from"><span class="time num">${timesFor(f && dep, p.depTime)}</span><span class="city">${esc(dep.city || '')}</span></div>
+      <div class="end to meta-to"><span class="time num">${timesFor(f && arr, '')}</span><span class="city">${esc(arr.city || '')}</span></div>
+    </div>
+    ${items.length ? `<div class="stub">${items.map(([k, v]) => `<div class="kv"><span>${k}</span><b class="num">${esc(v)}</b></div>`).join('')}${p.demo ? '<span class="pill sample-tag">Sample</span>' : ''}</div>` : ''}
+  </button>`;
+}
+function render() {
+  const list = $('#list');
+  if (!passes.length) {
+    list.innerHTML = `<div class="empty"><h2>No passes yet</h2><p>Add a boarding pass and it stays on this phone, ready to show at the gate even with no signal.</p><button class="btn primary" id="emptyAdd">Add your first pass</button></div>`;
+    $('#emptyAdd').onclick = openAdd;
+    return;
+  }
+  const pastOpen = !!($('.past') && $('.past').open);
+  const up = passes.filter((p) => !isPast(p)).sort((a, b) => sortKey(a) - sortKey(b));
+  const past = passes.filter(isPast).sort((a, b) => sortKey(b) - sortKey(a));
+  list.innerHTML =
+    (up.length ? `<h2>Upcoming</h2><div class="stack">${up.map(card).join('')}</div>` : `<h2>Upcoming</h2><p style="color:var(--muted);margin:0 4px">Nothing coming up.</p>`) +
+    (past.length ? `<details class="past"${pastOpen ? ' open' : ''}><summary>Past flights (${past.length})</summary><div class="stack">${past.map(card).join('')}</div></details>` : '');
+}
+
+function kv(k, v) { return v ? `<div class="kv"><span>${k}</span><b class="num">${esc(v)}</b></div>` : ''; }
+function bindDocs(p) {
+  const g = $('#dGate'); if (g) g.onclick = () => openGate(p);
+  const a = $('#dAttach'); if (a) a.onclick = () => openEditor(p);
+}
+async function renderDetail() {
+  const p = passes.find((x) => x.id === detailId);
+  if (!p) return;
+  const f = fdata(p);
+  const dep = f ? f.dep : {}, arr = f ? f.arr : {};
+  const st = statusOf(p);
+  $('#detailTitle').textContent = `${p.carrier} ${p.flightNo}`;
+  let syncLine = '';
+  if (busy.has(p.id)) syncLine = 'Updating…';
+  else if (p.flight) syncLine = `Flight info saved ${ago(p.flight.fetchedAt)}${p.flight.source === 'demo' ? ' from the demo service' : ''}`;
+  else syncLine = 'No live flight info yet';
+  const offline = !navigator.onLine;
+  const can = canFetch(p);
+  let note = '';
+  if (errors[p.id]) note = `<div class="note bad">${esc(errors[p.id])}</div>`;
+  else if (p.demo && !DEMO.on) note = `<div class="note">Demo mode is off, so this sample flight can’t update. <button class="text-btn" id="dGoKey" style="min-height:0;padding:0">Open Settings</button></div>`;
+  else if (!can) note = `<div class="note">Live gate, terminal and delay info needs an AeroDataBox key. <button class="text-btn" id="dGoKey" style="min-height:0;padding:0">Add one in Settings</button></div>`;
+  else if (offline && p.flight) note = `<div class="note warn">You’re offline. This is the flight info saved ${ago(p.flight.fetchedAt)}.</div>`;
+  const depDay = localDay(dep.sched);
+  const arrDay = localDay(arrBest(f));
+  const dayDiff = depDay && arrDay ? Math.round((Date.parse(arrDay) - Date.parse(depDay)) / 864e5) : 0;
+  const nextDay = dayDiff ? ` <span class="plus" title="Arrives ${esc(fmtDate(arrDay, true))}">${dayDiff > 0 ? '+' : ''}${dayDiff}</span>` : '';
+  const key = `${p.id}|${p.fileId || ''}|${p.ticketFileId || ''}`;
+  const cached = docCache.key === key ? docCache.html : '';
+
+  $('#detailBody').innerHTML = `
+    <div class="d-head"><span class="d-fl">${esc(p.carrier)} ${esc(p.flightNo)}</span>${f && f.airline ? `<span class="d-airline">${esc(f.airline)}</span>` : ''}${p.demo ? '<span class="pill">Sample</span>' : ''}${st ? `<span class="pill ${st.tone}">${esc(st.label)}</span>` : ''}</div>
+    <p class="d-date">${esc(fmtDate(p.date, true))}</p>
+    <div class="route">
+      <span class="code">${esc(p.from || dep.iata || '···')}</span>${arcHTML(p)}<span class="code">${esc(p.to || arr.iata || '···')}</span>
+      <div class="end meta-from"><span class="time num">${timesFor(f && dep, p.depTime)}</span><span class="city">${esc(dep.city || dep.name || '')}</span></div>
+      <div class="end to meta-to"><span class="time num">${timesFor(f && arr, '')}${nextDay}</span><span class="city">${esc(arr.city || arr.name || '')}</span></div>
+    </div>
+    <div class="grid">
+      ${kv('Boarding', boardingFor(p))}${kv('Check-in', dep.checkIn)}${kv('Terminal', dep.terminal)}${kv('Gate', dep.gate || p.gate)}${kv('Seat', p.seat)}
+      ${kv('Arrival terminal', arr.terminal)}${kv('Arrival gate', arr.gate)}${kv('Baggage belt', arr.belt)}
+      ${kv('Aircraft', f && f.aircraft)}${kv('Distance', f && f.distanceKm ? `${Math.round(f.distanceKm).toLocaleString()} km` : '')}
+    </div>
+    <div class="sync"><span>${syncLine}</span>${can && !busy.has(p.id) ? `<button class="text-btn" id="dRefresh" ${offline ? 'disabled' : ''}>${offline ? 'Refresh when online' : 'Refresh now'}</button>` : ''}</div>
+    ${note}
+    <div class="people">${kv('Passenger', p.passenger)}${kv('Booking reference', p.pnr)}</div>
+    <div id="dDoc">${cached}</div>
+    <div class="actions"><button class="btn danger block" id="dDelete">Delete pass</button></div>`;
+
+  const r = $('#dRefresh'); if (r) r.onclick = () => refreshFlight(p, false);
+  const k = $('#dGoKey'); if (k) k.onclick = openSettings;
+  $('#dDelete').onclick = () => deletePass(p);
+  bindDocs(p);
+
+  // Documents are loaded from the device once, then reused so the page doesn't jump on every refresh.
+  if (docCache.key !== key) {
+    const [bp, tk] = await Promise.all([
+      p.fileId ? DB.get('files', p.fileId) : null,
+      p.ticketFileId ? DB.get('files', p.ticketFileId) : null,
+    ]);
+    if (detailId !== p.id) return;
+    detailUrls.forEach((u) => URL.revokeObjectURL(u));
+    detailUrls = [];
+    const view = (file, alt) => {
+      const u = URL.createObjectURL(file.blob);
+      detailUrls.push(u);
+      const isPdf = (file.type || file.blob.type) === 'application/pdf';
+      return `<div class="doc">${isPdf ? `<iframe src="${u}" title="${alt}"></iframe>` : `<img src="${u}" alt="${alt}">`}</div>${isPdf ? `<a class="btn block" href="${u}" target="_blank" rel="noopener">Open PDF</a>` : ''}`;
+    };
+    let html = '';
+    if (bp) html += `<h3 class="doc-h">Boarding pass</h3><button class="btn primary block" id="dGate">Show pass at the gate</button>${view(bp, 'Boarding pass')}`;
+    else html += `<div class="note">No boarding pass file attached. <button class="text-btn" id="dAttach" style="min-height:0;padding:0">Attach one</button></div>`;
+    if (tk) html += `<h3 class="doc-h">Ticket</h3>${view(tk, 'Ticket')}`;
+    docCache = { key, html };
+    const box = $('#dDoc');
+    if (box) { box.innerHTML = html; bindDocs(p); }
+  }
+}
+
+/* ---------- Network: fetch and store flight info ---------- */
+async function refreshFlight(p, silent) {
+  if (busy.has(p.id)) return;
+  if (!canFetch(p)) {
+    if (!silent) toast(p.demo ? 'Turn on demo mode to update this sample flight.' : 'Add an AeroDataBox key in Settings to fetch flight info.');
+    return;
+  }
+  if (!navigator.onLine) { if (!silent) toast('You’re offline. Showing the last saved flight info.'); return; }
+  busy.add(p.id);
+  p.triedAt = Date.now();
+  if (detailId === p.id) renderDetail();
+  const label = `${p.carrier}${p.flightNo} on ${fmtDate(p.date)}`;
+  const mock = useMock(p);
+  try {
+    const num = encodeURIComponent(`${p.carrier}${p.flightNo}`.replace(/\s+/g, ''));
+    const url = `https://${API_HOST}/flights/number/${num}/${p.date}?withAircraftImage=false&withLocation=false`;
+    const res = mock ? await mockFetch(url) : await fetch(url, { headers: { 'X-RapidAPI-Key': apiKey, 'X-RapidAPI-Host': API_HOST } });
+    if (res.status === 204 || res.status === 404) throw new Error(`No flight found for ${label}. Check the flight number and date.`);
+    if (res.status === 401 || res.status === 403) throw new Error('Your AeroDataBox key was rejected. Check it in Settings, and make sure you’re subscribed to the API on RapidAPI.');
+    if (res.status === 429) throw new Error('You’ve reached the API request limit. Try again later.');
+    if (!res.ok) throw new Error(`The flight service returned an error (${res.status}). Try again later.`);
+    const body = await res.json();
+    const list = Array.isArray(body) ? body : [body];
+    if (!list.length) throw new Error(`No flight found for ${label}. Check the flight number and date.`);
+    const iata = (x, side) => x[side] && x[side].airport && x[side].airport.iata;
+    const pick = list.find((x) => p.from && iata(x, 'departure') === p.from && (!p.to || iata(x, 'arrival') === p.to))
+      || list.find((x) => p.from && iata(x, 'departure') === p.from) || list[0];
+    const data = normalize(pick);
+    p.flight = { fetchedAt: Date.now(), data, source: mock ? 'demo' : 'live' };
+    if (!p.from && data.dep.iata) p.from = data.dep.iata;
+    if (!p.to && data.arr.iata) p.to = data.arr.iata;
+    delete errors[p.id];
+  } catch (e) {
+    errors[p.id] = e instanceof TypeError ? 'Couldn’t reach the flight service. Check your connection and try again.' : e.message;
+    if (!silent && detailId !== p.id) toast(errors[p.id]);
+  } finally {
+    busy.delete(p.id);
+    // The pass may have been edited or deleted while the request was running.
+    const cur = passes.find((x) => x.id === p.id);
+    if (cur) {
+      if (cur !== p) { cur.flight = p.flight; cur.triedAt = p.triedAt; }
+      await DB.put('passes', cur);
+    }
+    render();
+    if (detailId === p.id) renderDetail();
+  }
+}
+function autoRefresh() {
+  if (!navigator.onLine) return;
+  const now = Date.now();
+  for (const p of passes) {
+    if (isPast(p) || !canFetch(p)) continue;
+    const ttl = useMock(p) ? 55e3 : 20 * 60e3;
+    const hoursAway = (sortKey(p) - nowFor(p)) / 3600e3;
+    const fresh = p.flight && now - p.flight.fetchedAt < ttl;
+    const recentTry = p.triedAt && now - p.triedAt < (p.flight ? ttl : 6 * 3600e3);
+    if (fresh || recentTry) continue;
+    if (!p.flight || (hoursAway < 48 && hoursAway > -18)) refreshFlight(p, true);
+  }
+}
+
+/* ---------- Files ---------- */
+async function fileIsShared(fileId, exceptId) {
+  return passes.some((x) => (x.fileId === fileId || x.ticketFileId === fileId) && x.id !== exceptId);
+}
+async function deleteFileIfOrphan(fileId, exceptId) {
+  if (fileId && !(await fileIsShared(fileId, exceptId))) await DB.del('files', fileId);
+}
+async function saveFile(blob, name) {
+  const id = uid();
+  await DB.put('files', { id, blob, name: name || 'Boarding pass', type: blob.type });
+  return id;
+}
+
+/* ---------- Add flow ---------- */
+function openAdd() { $('#dlgAdd').showModal(); }
+$('#btnAdd').onclick = openAdd;
+$('#optManual').onclick = () => { $('#dlgAdd').close(); openEditor(null); };
+$('#optImport').onclick = () => { $('#dlgAdd').close(); $('#fileImport').click(); };
+$('#optScan').onclick = () => { $('#dlgAdd').close(); openScanner(); };
+
+$('#fileImport').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let code = null;
+  if (scanFormats.length && file.type.startsWith('image/')) {
+    try {
+      const bmp = await createImageBitmap(file);
+      const found = await new BarcodeDetector({ formats: scanFormats }).detect(bmp);
+      code = found.find((c) => c.rawValue) || null;
+    } catch { /* no barcode readable */ }
+  }
+  if (code) return handleBarcode(code.rawValue, file, file.name);
+  openEditor(null, { file: { blob: file, name: file.name, type: file.type }, note: file.type === 'application/pdf'
+    ? 'PDF saved. Fill in the flight details below.'
+    : 'Couldn’t read a barcode from that image. Fill in the flight details below.' });
+};
+
+async function handleBarcode(raw, blob, name) {
+  const parsed = parseBCBP(raw);
+  const fileObj = blob ? { blob, name: name || 'Boarding pass', type: blob.type } : null;
+  if (!parsed) {
+    openEditor(null, { file: fileObj, note: 'The barcode was read, but it isn’t a standard boarding pass code. Fill in the flight details below.' });
+    return;
+  }
+  if (parsed.legs.length === 1) {
+    const l = parsed.legs[0];
+    openEditor(null, { file: fileObj, prefill: { ...l, passenger: parsed.passenger }, note: 'Details read from the barcode. Check them and save.' });
+    return;
+  }
+  const fileId = fileObj ? await saveFile(fileObj.blob, fileObj.name) : null;
+  const created = [];
+  for (const l of parsed.legs) {
+    const p = { id: uid(), createdAt: Date.now(), ...l, passenger: parsed.passenger, fileId, depTime: '', boardingTime: '', gate: '', flight: null };
+    await DB.put('passes', p);
+    passes.push(p);
+    created.push(p);
+  }
+  render();
+  toast(`Added ${created.length} flights from one boarding pass.`);
+  persistStorage();
+  created.forEach((p) => refreshFlight(p, true));
+}
+
+/* ---------- Scanner ---------- */
+let scanStop = null;
+async function openScanner() {
+  const dlg = $('#dlgScan');
+  const msg = $('#scanMsg');
+  msg.textContent = 'Fit the barcode inside the frame.';
+  dlg.showModal();
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+  } catch {
+    msg.textContent = 'Camera access is blocked. Allow camera access for this app, or import a screenshot instead.';
+    return;
+  }
+  const v = $('#scanVideo');
+  v.srcObject = stream;
+  try { await v.play(); } catch { /* autoplay */ }
+  const det = new BarcodeDetector({ formats: scanFormats });
+  let stopped = false;
+  scanStop = () => {
+    if (stopped) return;
+    stopped = true;
+    stream.getTracks().forEach((t) => t.stop());
+    v.srcObject = null;
+  };
+  const loop = async () => {
+    if (stopped) return;
+    try {
+      const codes = await det.detect(v);
+      const c = codes.find((x) => x.rawValue);
+      if (c) {
+        const canvas = document.createElement('canvas');
+        canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+        canvas.getContext('2d').drawImage(v, 0, 0);
+        const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
+        scanStop();
+        dlg.close();
+        handleBarcode(c.rawValue, blob, 'Scanned boarding pass.jpg');
+        return;
+      }
+    } catch { /* keep trying */ }
+    setTimeout(loop, 250);
+  };
+  loop();
+}
+$('#dlgScan').addEventListener('close', () => { if (scanStop) scanStop(); scanStop = null; });
+
+/* ---------- Editor ---------- */
+const F = (n) => $('#editForm').elements[n];
+const SLOTS = {
+  fileId: { box: '#editFile', label: 'boarding pass', hint: 'Attach a screenshot or PDF to show at the gate.' },
+  ticketFileId: { box: '#editTicket', label: 'ticket', hint: 'Attach your e-ticket or receipt so it’s on hand offline.' },
+};
+function renderAttach() {
+  for (const [slot, cfg] of Object.entries(SLOTS)) {
+    const d = draftFiles[slot];
+    const hasExisting = editing && editing[slot] && !removeFiles[slot];
+    let html;
+    if (d) html = `<p>${esc(d.name)} will be saved on this device.</p><button type="button" class="text-btn" data-attach="${slot}">Replace</button><button type="button" class="text-btn" data-remove="${slot}">Remove</button>`;
+    else if (hasExisting) html = `<p>A ${cfg.label} file is attached.</p><button type="button" class="text-btn" data-attach="${slot}">Replace</button><button type="button" class="text-btn" data-remove="${slot}">Remove</button>`;
+    else html = `<p>${cfg.hint}</p><button type="button" class="text-btn" data-attach="${slot}">Attach file</button>`;
+    $(cfg.box).innerHTML = html;
+  }
+}
+$('#editForm').addEventListener('click', (e) => {
+  const a = e.target.closest('[data-attach]');
+  if (a) { attachSlot = a.dataset.attach; $('#fileAttach').click(); return; }
+  const r = e.target.closest('[data-remove]');
+  if (r) {
+    const s = r.dataset.remove;
+    if (draftFiles[s]) delete draftFiles[s]; else removeFiles[s] = true;
+    renderAttach();
+  }
+});
+$('#fileAttach').onchange = (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  draftFiles[attachSlot] = { blob: file, name: file.name, type: file.type };
+  delete removeFiles[attachSlot];
+  renderAttach();
+};
+function openEditor(p, opts = {}) {
+  editing = p;
+  draftFiles = opts.file ? { fileId: opts.file } : {};
+  removeFiles = {};
+  const src = p || opts.prefill || {};
+  $('#editTitle').textContent = p ? 'Edit pass' : 'New pass';
+  $('#editNote').innerHTML = opts.note ? `<div class="note">${esc(opts.note)}</div>` : '';
+  for (const n of ['carrier', 'flightNo', 'date', 'from', 'to', 'depTime', 'boardingTime', 'seat', 'gate', 'passenger', 'pnr']) {
+    F(n).value = src[n] || '';
+  }
+  if (!F('date').value) F('date').value = todayISO();
+  renderAttach();
+  if ($('#dlgDetail').open && !p) $('#dlgDetail').close();
+  $('#dlgEdit').showModal();
+}
+$('#editForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const v = (n) => F(n).value.trim();
+  const up = (n) => v(n).toUpperCase();
+  const problems = [];
+  if (!/^[A-Z0-9]{2,3}$/.test(up('carrier'))) problems.push(['carrier', 'Enter the 2-letter airline code, like LH or BA.']);
+  if (!/^\d{1,4}[A-Z]?$/.test(up('flightNo'))) problems.push(['flightNo', 'Enter the flight number, like 400.']);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v('date'))) problems.push(['date', 'Pick the departure date.']);
+  for (const n of ['from', 'to']) if (v(n) && !/^[A-Z]{3}$/.test(up(n))) problems.push([n, 'Use the 3-letter airport code, like FRA.']);
+  if (problems.length) {
+    $('#editNote').innerHTML = `<div class="note bad">${esc(problems[0][1])}</div>`;
+    F(problems[0][0]).focus();
+    return;
+  }
+  const p = editing ? { ...editing } : { id: uid(), createdAt: Date.now(), flight: null, fileId: null, ticketFileId: null };
+  const changed = editing && (editing.carrier !== up('carrier') || editing.flightNo !== up('flightNo') || editing.date !== v('date') || editing.from !== up('from'));
+  Object.assign(p, {
+    carrier: up('carrier'), flightNo: up('flightNo').replace(/^0+(?=\d)/, ''), date: v('date'), from: up('from'), to: up('to'),
+    depTime: v('depTime'), boardingTime: v('boardingTime'), seat: up('seat'), gate: up('gate'), passenger: v('passenger'), pnr: up('pnr'),
+  });
+  if (changed) { p.flight = null; p.triedAt = 0; delete errors[p.id]; }
+  try {
+    for (const slot of Object.keys(SLOTS)) {
+      const old = editing && editing[slot];
+      if (draftFiles[slot]) {
+        p[slot] = await saveFile(draftFiles[slot].blob, draftFiles[slot].name);
+        if (old) await deleteFileIfOrphan(old, p.id);
+      } else if (removeFiles[slot] && old) {
+        p[slot] = null;
+        await deleteFileIfOrphan(old, p.id);
+      }
+    }
+    await DB.put('passes', p);
+  } catch (err) {
+    $('#editNote').innerHTML = `<div class="note bad">Couldn’t save on this device: ${esc(err && err.message)}. Free up storage and try again.</div>`;
+    return;
+  }
+  const i = passes.findIndex((x) => x.id === p.id);
+  if (i >= 0) passes[i] = p; else passes.push(p);
+  draftFiles = {};
+  $('#dlgEdit').close();
+  render();
+  if (detailId === p.id) renderDetail();
+  toast(editing ? 'Pass saved.' : 'Pass added.');
+  persistStorage();
+  if (!p.flight) refreshFlight(p, true);
+});
+
+/* ---------- Detail / delete ---------- */
+function openDetail(id) {
+  detailId = id;
+  renderDetail();
+  if (!$('#dlgDetail').open) $('#dlgDetail').showModal();
+}
+$('#list').addEventListener('click', (e) => {
+  const b = e.target.closest('.pass');
+  if (b) openDetail(b.dataset.id);
+});
+$('#btnEdit').onclick = () => { const p = passes.find((x) => x.id === detailId); if (p) openEditor(p); };
+$('#dlgDetail').addEventListener('close', () => {
+  detailId = null;
+  detailUrls.forEach((u) => URL.revokeObjectURL(u));
+  detailUrls = [];
+  docCache = { key: '', html: '' };
+});
+async function deletePass(p) {
+  if (!confirm(`Delete ${p.carrier} ${p.flightNo} on ${fmtDate(p.date)}? Its saved file is deleted too.`)) return;
+  passes = passes.filter((x) => x.id !== p.id);
+  await DB.del('passes', p.id);
+  await deleteFileIfOrphan(p.fileId, p.id);
+  await deleteFileIfOrphan(p.ticketFileId, p.id);
+  $('#dlgDetail').close();
+  render();
+  toast('Pass deleted.');
+}
+
+/* ---------- Gate mode ---------- */
+async function openGate(p) {
+  const file = await DB.get('files', p.fileId);
+  if (!file) return;
+  if (gateUrl) URL.revokeObjectURL(gateUrl);
+  gateUrl = URL.createObjectURL(file.blob);
+  const isPdf = (file.type || file.blob.type) === 'application/pdf';
+  $('#gateTitle').textContent = `${p.from || ''} → ${p.to || ''}`.trim();
+  $('#gateSeat').textContent = p.seat ? `Seat ${p.seat}` : `${p.carrier} ${p.flightNo}`;
+  $('#gateDoc').innerHTML = isPdf ? `<iframe src="${gateUrl}" title="Boarding pass PDF"></iframe>` : `<img src="${gateUrl}" alt="Boarding pass">`;
+  $('#dlgGate').showModal();
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch { /* not allowed */ }
+}
+$('#dlgGate').addEventListener('close', () => {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  if (gateUrl) { URL.revokeObjectURL(gateUrl); gateUrl = null; }
+  $('#gateDoc').innerHTML = '';
+});
+
+/* ---------- Settings ---------- */
+async function openSettings() {
+  $('#sKey').value = apiKey;
+  $('#sKey').type = 'password';
+  $('#btnShowKey').textContent = 'Show';
+  renderDemoTools();
+  $('#dlgSettings').showModal();
+  let info = 'Everything is stored only in this browser on this device.';
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const { usage = 0 } = await navigator.storage.estimate();
+      const persisted = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      info = `${passes.length} ${passes.length === 1 ? 'pass' : 'passes'}, using ${(usage / 1048576).toFixed(1)} MB on this device. ${persisted
+        ? 'Storage is marked as persistent, so the browser won’t clear it to free space.'
+        : 'The browser may clear this data if the device runs low on space. Installing the app to your home screen helps keep it.'}`;
+    }
+  } catch { /* ignore */ }
+  $('#storageInfo').textContent = info;
+}
+$('#btnSettings').onclick = openSettings;
+$('#btnShowKey').onclick = () => {
+  const i = $('#sKey');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  $('#btnShowKey').textContent = i.type === 'password' ? 'Show' : 'Hide';
+};
+$('#btnSaveKey').onclick = async () => {
+  apiKey = $('#sKey').value.trim();
+  await DB.put('kv', apiKey, 'apiKey');
+  Object.keys(errors).forEach((k) => delete errors[k]);
+  passes.forEach((p) => { p.triedAt = 0; });
+  toast(apiKey ? 'Key saved. Fetching flight info…' : 'Key removed.');
+  render();
+  autoRefresh();
+};
+const toB64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+$('#btnExport').onclick = async () => {
+  const files = await DB.all('files');
+  const out = { app: 'gatepass', version: 1, exportedAt: new Date().toISOString(), passes, files: [] };
+  for (const f of files) out.files.push({ id: f.id, name: f.name, type: f.type || f.blob.type, data: await toB64(f.blob) });
+  const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+  const name = `gatepass-backup-${todayISO()}.json`;
+  const file = new File([blob], name, { type: 'application/json' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Gatepass backup' }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+$('#btnImport').onclick = () => $('#fileBackup').click();
+$('#fileBackup').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (data.app !== 'gatepass' || !Array.isArray(data.passes)) throw new Error('not a Gatepass backup');
+    for (const f of data.files || []) {
+      const bin = Uint8Array.from(atob(f.data), (c) => c.charCodeAt(0));
+      await DB.put('files', { id: f.id, name: f.name, type: f.type, blob: new Blob([bin], { type: f.type }) });
+    }
+    for (const p of data.passes) await DB.put('passes', p);
+    passes = await DB.all('passes');
+    render();
+    toast(`Restored ${data.passes.length} ${data.passes.length === 1 ? 'pass' : 'passes'}.`);
+    openSettings();
+  } catch (err) {
+    toast(`Couldn’t restore that file: ${err.message}.`);
+  }
+};
+$('#btnWipe').onclick = async () => {
+  if (!confirm('Erase all passes, files and your API key from this device? This can’t be undone.')) return;
+  await Promise.all([DB.clear('passes'), DB.clear('files'), DB.clear('kv')]);
+  passes = []; apiKey = '';
+  DEMO.on = false; DEMO.offset = 0; DEMO.epoch = 0; DEMO.fault = 'none'; DEMO.log = [];
+  $('#dlgSettings').close();
+  render();
+  toast('All data erased.');
+};
+
+/* ---------- Demo mode: fictional itinerary and a mock flight service ---------- */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MIN = 60e3;
+const MOCK = {
+  ZZ482: { airline: 'Skyward Air', model: 'Airbus A320neo', reg: 'ZZ-DMO', km: 1840, dur: 250, startMin: 180, delay: 25, gates: ['B14', 'B22'], desk: '41-48',
+    from: { iata: 'PHD', city: 'Port Halden', name: 'Halden International', off: 1, term: '2' },
+    to: { iata: 'MLB', city: 'Marlow Bay', name: 'Marlow Bay Airport', off: -2, term: '1', gate: 'C7', belt: '4' } },
+  ZZ483: { airline: 'Skyward Air', model: 'Airbus A320neo', reg: 'ZZ-DMO', km: 1840, dur: 235, startMin: 3 * 1440 + 180, delay: 0, gates: ['D3'], desk: '12-19',
+    from: { iata: 'MLB', city: 'Marlow Bay', name: 'Marlow Bay Airport', off: -2, term: '1' },
+    to: { iata: 'PHD', city: 'Port Halden', name: 'Halden International', off: 1, term: '2', gate: 'A9', belt: '2' } },
+};
+const floor5 = (ms) => Math.floor(ms / 300000) * 300000;
+const mockNow = () => Date.now() + DEMO.offset;
+const mockSched = (c) => floor5(DEMO.epoch + c.startMin * MIN);
+const mockIso = (ms) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + 'Z';
+const mockLoc = (ms, off) => `${new Date(ms + off * 3600e3).toISOString().slice(0, 16).replace('T', ' ')}${off < 0 ? '-' : '+'}${pad(Math.abs(off))}:00`;
+const mockT = (ms, off) => ({ utc: mockIso(ms), local: mockLoc(ms, off) });
+const mockDay = (ms, off) => new Date(ms + off * 3600e3).toISOString().slice(0, 10);
+const mockHM = (ms, off) => mockLoc(ms, off).slice(11, 16);
+const mockDM = (ms, off) => new Date(ms + off * 3600e3).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' }).toUpperCase();
+const mockDOW = (ms, off) => new Date(ms + off * 3600e3).toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
+
+// Builds a response in the same shape the real service returns, driven by the demo clock.
+function mockFlight(num, date) {
+  const c = MOCK[num];
+  if (!c || !DEMO.epoch) return null;
+  const S = mockSched(c);
+  if (mockDay(S, c.from.off) !== date) return null;
+  const t = mockNow();
+  const announced = c.delay > 0 && t >= S - 90 * MIN;     // delay becomes known 90 min before schedule
+  const Rf = S + c.delay * MIN;                           // actual departure
+  const A = Rf + (c.dur - (c.delay ? 5 : 0)) * MIN;       // actual arrival (5 min made up in the air)
+  let status = 'Expected';
+  if (t >= A) status = 'Arrived';
+  else if (t >= A - 15 * MIN) status = 'Approaching';
+  else if (t >= Rf + 10 * MIN) status = 'EnRoute';
+  else if (t >= Rf) status = 'Departed';
+  else if (t >= Rf - 10 * MIN) status = 'GateClosed';
+  else if (t >= Rf - 40 * MIN) status = 'Boarding';
+  else if (t >= Rf - 150 * MIN) status = 'CheckIn';
+  const gate = t >= Rf - 50 * MIN && c.gates.length > 1 ? c.gates[1] : (t >= Rf - 110 * MIN ? c.gates[0] : undefined);
+  const ap = (a) => ({ iata: a.iata, municipalityName: a.city, shortName: a.name, name: a.name });
+  return {
+    number: `${num.slice(0, 2)} ${num.slice(2)}`,
+    status,
+    airline: { name: c.airline },
+    aircraft: { model: c.model, reg: c.reg },
+    greatCircleDistance: { km: c.km },
+    departure: {
+      airport: ap(c.from),
+      scheduledTime: mockT(S, c.from.off),
+      revisedTime: announced ? mockT(Rf, c.from.off) : undefined,
+      runwayTime: t >= Rf ? mockT(Rf, c.from.off) : undefined,
+      terminal: c.from.term,
+      gate,
+      checkInDesk: t >= Rf - 150 * MIN && t < Rf - 40 * MIN ? c.desk : undefined,
+    },
+    arrival: {
+      airport: ap(c.to),
+      scheduledTime: mockT(S + c.dur * MIN, c.to.off),
+      predictedTime: announced ? mockT(A, c.to.off) : undefined,
+      runwayTime: t >= A ? mockT(A, c.to.off) : undefined,
+      terminal: c.to.term,
+      gate: t >= A - 15 * MIN ? c.to.gate : undefined,
+      baggageBelt: t >= A ? c.to.belt : undefined,
+    },
+  };
+}
+
+function logCall(path, status, t0) {
+  DEMO.log.unshift({ path, status, ms: Math.round(performance.now() - t0) });
+  DEMO.log.length = Math.min(DEMO.log.length, 12);
+  renderDemoLog();
+}
+// Stands in for fetch(): same URL, same status codes, same JSON, plus fake latency.
+async function mockFetch(url) {
+  const t0 = performance.now();
+  const u = new URL(url);
+  const m = u.pathname.match(/\/flights\/number\/([^/]+)\/(\d{4}-\d{2}-\d{2})/);
+  await sleep(450 + Math.random() * 650);
+  const fault = DEMO.fault;
+  if (fault === 'network') { logCall(u.pathname, 'Network failure', t0); throw new TypeError('Failed to fetch'); }
+  let status = 200, body = null;
+  if (fault === 'rate') status = 429;
+  else if (fault === 'error') status = 500;
+  else if (fault === 'notfound' || !m) status = 404;
+  else {
+    const flight = mockFlight(decodeURIComponent(m[1]).toUpperCase(), m[2]);
+    if (flight) body = [flight]; else status = 204;
+  }
+  logCall(u.pathname, status, t0);
+  return new Response(status === 200 ? JSON.stringify(body) : null, { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+/* Fictional documents, drawn on a canvas. Both are watermarked and the barcode is not real. */
+const CF = '"Barlow Condensed","Arial Narrow",sans-serif', BF = '"Barlow",system-ui,sans-serif';
+async function fontsReady() {
+  try { await Promise.all([document.fonts.load(`700 40px ${CF}`), document.fonts.load(`600 40px ${CF}`), document.fonts.load(`500 26px ${BF}`)]); } catch { /* fall back */ }
+}
+const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
+const canvasBlob = (c) => new Promise((r) => c.toBlob(r, 'image/png'));
+function txt(ctx, s, x, y, font, color, align = 'left') {
+  ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y);
+}
+function watermark(ctx, w, h) {
+  ctx.save();
+  ctx.translate(w / 2, h / 2); ctx.rotate(-Math.PI / 6);
+  ctx.fillStyle = 'rgba(179,38,30,.17)'; ctx.textAlign = 'center';
+  ctx.font = `700 150px ${CF}`; ctx.fillText('SAMPLE', 0, -10);
+  ctx.font = `600 54px ${CF}`; ctx.fillText('NOT VALID FOR TRAVEL', 0, 60);
+  ctx.restore();
+}
+function fauxPdf417(ctx, x, y, w, h, seed) {
+  let a = seed;
+  const rnd = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const rows = 16, rowH = h / rows, mod = w / 120;
+  const start = [8, 1, 1, 1, 1, 1, 1, 3], stop = [7, 1, 1, 3, 1, 1, 1, 2, 1];
+  ctx.fillStyle = '#111';
+  for (let r = 0; r < rows; r++) {
+    let px = 0, on = true;
+    const run = (n) => { if (on) ctx.fillRect(x + px * mod, y + r * rowH, n * mod, rowH + 0.6); px += n; on = !on; };
+    start.forEach(run);
+    while (px < 102) run(Math.min(1 + Math.floor(rnd() * 4), 102 - px));
+    px = 102; on = true;
+    stop.forEach(run);
+  }
+}
+const PLANE_PATH = 'M21 12.5 13.5 9V4.5a1.5 1.5 0 0 0-3 0V9L3 12.5V14l7.5-2v4.5L8.5 18v1.5l3.5-1 3.5 1V18l-2-1.5V12l7.5 2z';
+const PAX = 'NORTHCOTT/AVERY MS', PNR = 'DM0K42', TICKET_NO = '000 4417 0092 31';
+
+async function drawBoardingPass(L) {
+  await fontsReady();
+  const { c, S, num } = L;
+  const W = 900, H = 1500, ink = '#142235', mut = '#5D6E80', rule = '#CBD5DD';
+  const [cv, ctx] = mkCanvas(W, H);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = ink; ctx.fillRect(0, 0, W, 210);
+  txt(ctx, 'SKYWARD AIR', 56, 112, `700 68px ${CF}`, '#fff');
+  txt(ctx, 'Boarding pass', 56, 162, `500 30px ${BF}`, 'rgba(255,255,255,.78)');
+  txt(ctx, 'Economy Light, group 2', W - 56, 162, `500 30px ${BF}`, 'rgba(255,255,255,.78)', 'right');
+  txt(ctx, 'Passenger', 56, 292, `500 26px ${BF}`, mut);
+  txt(ctx, PAX, 56, 348, `700 56px ${CF}`, ink);
+  txt(ctx, c.from.iata, 56, 520, `700 124px ${CF}`, ink);
+  txt(ctx, c.to.iata, W - 56, 520, `700 124px ${CF}`, ink, 'right');
+  ctx.strokeStyle = '#B0186A'; ctx.lineWidth = 5; ctx.setLineDash([14, 12]);
+  ctx.beginPath(); ctx.moveTo(360, 470); ctx.lineTo(540, 470); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(450, 470, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.translate(450, 470); ctx.rotate(Math.PI / 2); ctx.scale(3, 3); ctx.translate(-12, -12);
+  ctx.fillStyle = '#B0186A'; ctx.fill(new Path2D(PLANE_PATH)); ctx.restore();
+  txt(ctx, c.from.city, 56, 585, `500 34px ${BF}`, mut);
+  txt(ctx, c.to.city, W - 56, 585, `500 34px ${BF}`, mut, 'right');
+  ctx.fillStyle = rule; ctx.fillRect(56, 625, W - 112, 2);
+  const cols = [56, 340, 624];
+  const cell = (i, row, label, value) => {
+    const y = 695 + row * 160;
+    txt(ctx, label, cols[i], y, `500 26px ${BF}`, mut);
+    txt(ctx, value, cols[i], y + 66, `700 60px ${CF}`, ink);
+  };
+  cell(0, 0, 'Flight', `${num.slice(0, 2)} ${num.slice(2)}`);
+  cell(1, 0, 'Date', mockDM(S, c.from.off));
+  cell(2, 0, 'Departs', mockHM(S, c.from.off));
+  cell(0, 1, 'Boarding', mockHM(S - 40 * MIN, c.from.off));
+  cell(1, 1, 'Gate', 'TBA');
+  cell(2, 1, 'Seat', '14C');
+  cell(0, 2, 'Zone', '2');
+  cell(1, 2, 'Sequence', '047');
+  cell(2, 2, 'Terminal', c.from.term);
+  ctx.strokeStyle = rule; ctx.lineWidth = 3; ctx.setLineDash([14, 12]);
+  ctx.beginPath(); ctx.moveTo(40, 1170); ctx.lineTo(W - 40, 1170); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#E9EEF1';
+  ctx.beginPath(); ctx.arc(0, 1170, 30, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W, 1170, 30, 0, Math.PI * 2); ctx.fill();
+  fauxPdf417(ctx, 56, 1225, W - 112, 160, num === 'ZZ482' ? 482 : 483);
+  txt(ctx, PNR, W / 2, 1440, `700 44px ${CF}`, ink, 'center');
+  txt(ctx, 'Fictional pass from Gatepass demo mode. The barcode is not real.', W / 2, 1478, `500 22px ${BF}`, mut, 'center');
+  watermark(ctx, W, H);
+  return canvasBlob(cv);
+}
+
+async function drawTicket(legs) {
+  await fontsReady();
+  const W = 900, H = 1500, ink = '#142235', mut = '#5D6E80', rule = '#CBD5DD';
+  const [cv, ctx] = mkCanvas(W, H);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = ink; ctx.fillRect(0, 0, W, 190);
+  txt(ctx, 'SKYWARD AIR', 56, 100, `700 68px ${CF}`, '#fff');
+  txt(ctx, 'Electronic ticket receipt', 56, 152, `500 30px ${BF}`, 'rgba(255,255,255,.78)');
+  const field = (x, y, label, value) => { txt(ctx, label, x, y, `500 26px ${BF}`, mut); txt(ctx, value, x, y + 48, `700 44px ${CF}`, ink); };
+  field(56, 262, 'Booking reference', PNR);
+  field(470, 262, 'Ticket number', TICKET_NO);
+  field(56, 382, 'Passenger', PAX);
+  txt(ctx, `Issued ${new Date(DEMO.epoch).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}`, W - 56, 152, `500 30px ${BF}`, 'rgba(255,255,255,.78)', 'right');
+  ctx.fillStyle = rule; ctx.fillRect(56, 470, W - 112, 2);
+  txt(ctx, 'Itinerary', 56, 540, `700 42px ${CF}`, ink);
+  legs.forEach((L, i) => {
+    const { c, S, num } = L, x = 56, y = 570 + i * 240, w = W - 112, h = 220;
+    ctx.strokeStyle = rule; ctx.lineWidth = 2; rrect(ctx, x, y, w, h, 18); ctx.stroke();
+    txt(ctx, `${num.slice(0, 2)} ${num.slice(2)}`, x + 28, y + 52, `700 40px ${CF}`, ink);
+    txt(ctx, `${mockDOW(S, c.from.off)} ${mockDM(S, c.from.off)}`, x + w - 28, y + 52, `500 28px ${BF}`, mut, 'right');
+    txt(ctx, c.from.iata, x + 28, y + 140, `700 80px ${CF}`, ink);
+    txt(ctx, c.to.iata, x + w - 28, y + 140, `700 80px ${CF}`, ink, 'right');
+    ctx.strokeStyle = '#B0186A'; ctx.lineWidth = 4; ctx.setLineDash([12, 10]);
+    ctx.beginPath(); ctx.moveTo(x + 230, y + 112); ctx.lineTo(x + w - 230, y + 112); ctx.stroke(); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(x + w / 2, y + 112); ctx.rotate(Math.PI / 2); ctx.scale(2, 2); ctx.translate(-12, -12);
+    ctx.fillStyle = '#B0186A'; ctx.fill(new Path2D(PLANE_PATH)); ctx.restore();
+    const t1 = mockHM(S, c.from.off), t2 = mockHM(S + c.dur * MIN, c.to.off);
+    ctx.font = `600 40px ${CF}`;
+    const w1 = ctx.measureText(t1).width, w2 = ctx.measureText(t2).width;
+    txt(ctx, t1, x + 28, y + 192, `600 40px ${CF}`, ink);
+    txt(ctx, c.from.city, x + 28 + w1 + 16, y + 192, `500 26px ${BF}`, mut);
+    txt(ctx, t2, x + w - 28, y + 192, `600 40px ${CF}`, ink, 'right');
+    txt(ctx, c.to.city, x + w - 28 - w2 - 16, y + 192, `500 26px ${BF}`, mut, 'right');
+  });
+  txt(ctx, 'Fare', 56, 1100, `700 42px ${CF}`, ink);
+  const line = (y, a, b, bold) => { txt(ctx, a, 56, y, `${bold ? 700 : 500} 32px ${BF}`, bold ? ink : mut); txt(ctx, b, W - 56, y, `${bold ? 700 : 500} 34px ${CF}`, ink, 'right'); };
+  line(1150, 'Base fare, Economy Light', '214.00');
+  line(1196, 'Taxes and airport charges', '38.40');
+  ctx.fillStyle = rule; ctx.fillRect(56, 1218, W - 112, 2);
+  line(1268, 'Total paid (USD)', '252.40', true);
+  txt(ctx, 'Paid with a sample card ending 0000', 56, 1314, `500 26px ${BF}`, mut);
+  txt(ctx, 'Baggage: one cabin bag up to 8 kg. No checked bag included.', 56, 1372, `500 26px ${BF}`, mut);
+  txt(ctx, 'Fictional ticket from Gatepass demo mode. It has no value.', W / 2, 1450, `500 22px ${BF}`, mut, 'center');
+  watermark(ctx, W, H);
+  return canvasBlob(cv);
+}
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+async function addSampleItinerary() {
+  DEMO.epoch = Date.now(); DEMO.offset = 0;
+  await saveDemo();
+  const legs = Object.entries(MOCK).map(([num, c]) => ({ num, c, S: mockSched(c) }));
+  const ticketId = await saveFile(await drawTicket(legs), 'Sample e-ticket.png');
+  for (const L of legs) {
+    const fileId = await saveFile(await drawBoardingPass(L), `Sample boarding pass ${L.num}.png`);
+    const off = L.c.from.off;
+    const p = {
+      id: uid(), createdAt: Date.now(), demo: true, carrier: 'ZZ', flightNo: L.num.slice(2), date: mockDay(L.S, off),
+      from: L.c.from.iata, to: L.c.to.iata, depTime: mockHM(L.S, off), boardingTime: mockHM(L.S - 40 * MIN, off),
+      seat: '14C', gate: '', passenger: 'Avery Northcott', pnr: PNR, fileId, ticketFileId: ticketId, flight: null,
+    };
+    await DB.put('passes', p);
+    passes.push(p);
+  }
+  render();
+  persistStorage();
+  passes.filter((p) => p.demo).forEach((p) => refreshFlight(p, true));
+}
+async function removeSamples() {
+  const mine = passes.filter((p) => p.demo);
+  passes = passes.filter((p) => !p.demo);
+  for (const p of mine) await DB.del('passes', p.id);
+  for (const p of mine) { await deleteFileIfOrphan(p.fileId, p.id); await deleteFileIfOrphan(p.ticketFileId, p.id); }
+  if ($('#dlgDetail').open && mine.some((p) => p.id === detailId)) $('#dlgDetail').close();
+  render();
+}
+const saveDemo = () => DB.put('kv', { on: DEMO.on, offset: DEMO.offset, epoch: DEMO.epoch }, 'demo');
+async function advanceClock(min) {
+  DEMO.offset = min === 0 ? 0 : DEMO.offset + min * MIN;
+  await saveDemo();
+  renderDemoTools(); render();
+  if (detailId) renderDetail();
+  passes.filter(useMock).forEach((p) => refreshFlight(p, true));
+}
+function renderDemoLog() {
+  const ol = $('#demoLog');
+  if (!ol) return;
+  ol.innerHTML = DEMO.log.length
+    ? DEMO.log.map((l) => `<li class="${l.status === 200 ? '' : 'bad'}">GET ${esc(l.path)}<br>${esc(l.status)} in ${l.ms} ms</li>`).join('')
+    : '<li>No calls yet. Open a sample flight and tap Refresh now.</li>';
+}
+function renderDemoTools() {
+  const has = passes.some((p) => p.demo);
+  $('#sDemo').checked = DEMO.on;
+  $('#demoTools').hidden = !DEMO.on;
+  $('#btnDemoAdd').hidden = !DEMO.on || has;
+  $('#btnDemoRemove').hidden = !has;
+  $('#sFault').value = DEMO.fault;
+  const t = new Date(mockNow());
+  $('#demoClockLabel').textContent = t.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + (DEMO.offset ? `, ${fmtDur(DEMO.offset / MIN)} ahead` : '');
+  renderDemoLog();
+}
+$('#sDemo').onchange = async (e) => {
+  DEMO.on = e.target.checked;
+  Object.keys(errors).forEach((k) => delete errors[k]);
+  passes.forEach((p) => { p.triedAt = 0; });
+  if (DEMO.on && !passes.some((p) => p.demo)) {
+    toast('Adding the sample itinerary…');
+    await addSampleItinerary();
+  } else await saveDemo();
+  updateNet(); renderDemoTools(); render();
+  if (detailId) renderDetail();
+  toast(DEMO.on ? 'Demo mode is on. Sample flights now use the built-in mock service.' : 'Demo mode is off.');
+  if (DEMO.on) autoRefresh();
+};
+$('#demoPill').onclick = () => openSettings();
+$('#btnDemoAdd').onclick = async () => { await addSampleItinerary(); renderDemoTools(); toast('Sample itinerary added.'); };
+$('#btnDemoRemove').onclick = async () => { await removeSamples(); renderDemoTools(); toast('Sample passes removed.'); };
+$('#sFault').onchange = (e) => { DEMO.fault = e.target.value; };
+document.querySelectorAll('[data-adv]').forEach((b) => { b.onclick = () => advanceClock(Number(b.dataset.adv)); });
+$('#btnClockReset').onclick = () => advanceClock(0);
+
+/* ---------- Misc ---------- */
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
+  if (t.parentNode !== host) host.appendChild(t);
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
+}
+function persistStorage() {
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch { /* ignore */ }
+}
+document.addEventListener('click', (e) => {
+  const c = e.target.closest('[data-close]');
+  if (c) { const d = c.closest('dialog'); if (d) d.close(); }
+});
+$('#dlgAdd').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+function updateNet() {
+  $('#net').hidden = navigator.onLine;
+  $('#demoPill').hidden = !DEMO.on;
+  if (detailId) renderDetail();
+}
+window.addEventListener('online', () => { updateNet(); autoRefresh(); });
+window.addEventListener('offline', updateNet);
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  render();
+  autoRefresh();
+  if ($('#dlgGate').open && !wakeLock && 'wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch { /* ignore */ }
+  }
+});
+setInterval(() => { render(); if (detailId) renderDetail(); autoRefresh(); }, 60e3);
+
+(async function init() {
+  if ('BarcodeDetector' in window) {
+    try {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      scanFormats = ['pdf417', 'aztec', 'qr_code', 'data_matrix'].filter((f) => supported.includes(f));
+    } catch { scanFormats = []; }
+  }
+  $('#optScan').hidden = !(scanFormats.length && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  try {
+    passes = await DB.all('passes');
+    apiKey = (await DB.get('kv', 'apiKey')) || '';
+    const d = await DB.get('kv', 'demo');
+    if (d) { DEMO.on = !!d.on; DEMO.offset = d.offset || 0; DEMO.epoch = d.epoch || 0; }
+  } catch {
+    $('#list').innerHTML = '<div class="empty"><h2>Storage unavailable</h2><p>This browser blocked on-device storage, so passes can’t be saved. Turn off private browsing and reopen the app.</p></div>';
+    return;
+  }
+  updateNet();
+  render();
+  autoRefresh();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
