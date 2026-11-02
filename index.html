@@ -355,7 +355,8 @@ legend{font:700 20px/1.2 var(--cond);padding:0;margin:8px 0 12px}
         <h3>Live flight info</h3>
         <p>Gate, terminal, delays and status come from AeroDataBox. Get a free key on <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" rel="noopener">RapidAPI</a> and paste it here. The key stays on this device.</p>
         <div class="field"><label for="sKey">AeroDataBox key</label><input id="sKey" type="password" autocomplete="off" spellcheck="false"></div>
-        <div class="btn-row"><button class="btn primary" id="btnSaveKey">Save key</button><button class="btn" id="btnShowKey">Show</button></div>
+        <div class="btn-row"><button class="btn primary" id="btnSaveKey">Save key</button><button class="btn" id="btnShowKey">Show</button><button class="btn" id="btnTestKey">Test key</button></div>
+        <p id="keyTestResult" role="status" aria-live="polite" hidden></p>
       </section>
       <section>
         <h3>Storage</h3>
@@ -1087,6 +1088,7 @@ async function openSettings() {
   $('#sKey').value = apiKey;
   $('#sKey').type = 'password';
   $('#btnShowKey').textContent = 'Show';
+  $('#keyTestResult').hidden = true;
   renderDemoTools();
   $('#dlgSettings').showModal();
   let info = 'Everything is stored only in this browser on this device.';
@@ -1106,6 +1108,27 @@ $('#btnShowKey').onclick = () => {
   const i = $('#sKey');
   i.type = i.type === 'password' ? 'text' : 'password';
   $('#btnShowKey').textContent = i.type === 'password' ? 'Show' : 'Hide';
+};
+// Checks the key currently typed in the box (saved or not) with one small lookup.
+$('#btnTestKey').onclick = async () => {
+  const btn = $('#btnTestKey'), out = $('#keyTestResult');
+  const key = $('#sKey').value.trim();
+  const show = (msg, color) => { out.textContent = msg; out.style.color = color; out.hidden = false; };
+  if (!key) { show('Paste a key first.', 'var(--warn)'); return; }
+  if (!navigator.onLine) { show('You’re offline. Connect to the internet to test the key.', 'var(--warn)'); return; }
+  btn.disabled = true; btn.textContent = 'Testing…'; out.hidden = true;
+  try {
+    const res = await fetch(`https://${API_HOST}/airports/iata/LHR`, { headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': API_HOST } });
+    if (res.ok) show('Key works. Live flight info is ready to use.', 'var(--ok)');
+    else if (res.status === 401) show('Key rejected. Check that you copied the whole key.', 'var(--bad)');
+    else if (res.status === 403) show('Key accepted but not allowed. Subscribe to the AeroDataBox API (free plan) on RapidAPI.', 'var(--bad)');
+    else if (res.status === 429) show('Key is valid, but the request limit has been reached. Try again later.', 'var(--warn)');
+    else show(`The flight service returned an error (${res.status}). Try again later.`, 'var(--bad)');
+  } catch (e) {
+    show('Couldn’t reach the flight service. Check your connection and try again.', 'var(--bad)');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Test key';
+  }
 };
 $('#btnSaveKey').onclick = async () => {
   apiKey = $('#sKey').value.trim();
