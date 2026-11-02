@@ -359,6 +359,15 @@ legend{font:700 20px/1.2 var(--cond);padding:0;margin:8px 0 12px}
         <p id="keyTestResult" role="status" aria-live="polite" hidden></p>
       </section>
       <section>
+        <h3>Live demo</h3>
+        <p>Pick a random real flight that is leaving soon (or just left) and track it with live data from AeroDataBox. The pass, passenger and seat are made up. Needs a saved key and uses a few requests from your quota.</p>
+        <div class="btn-row">
+          <button class="btn primary" id="btnLiveAdd">Track a random live flight</button>
+          <button class="btn danger" id="btnLiveRemove" hidden>Remove live demo flights</button>
+        </div>
+        <p id="liveDemoMsg" role="status" aria-live="polite" hidden></p>
+      </section>
+      <section>
         <h3>Storage</h3>
         <p id="storageInfo">Checking storage…</p>
         <div class="btn-row">
@@ -669,7 +678,7 @@ function card(p) {
       <div class="end meta-from"><span class="time num">${timesFor(f && dep, p.depTime)}</span><span class="city">${esc(dep.city || '')}</span></div>
       <div class="end to meta-to"><span class="time num">${timesFor(f && arr, '')}</span><span class="city">${esc(arr.city || '')}</span></div>
     </div>
-    ${items.length ? `<div class="stub">${items.map(([k, v]) => `<div class="kv"><span>${k}</span><b class="num">${esc(v)}</b></div>`).join('')}${p.demo ? '<span class="pill sample-tag">Sample</span>' : ''}</div>` : ''}
+    ${items.length ? `<div class="stub">${items.map(([k, v]) => `<div class="kv"><span>${k}</span><b class="num">${esc(v)}</b></div>`).join('')}${p.demo || p.liveDemo ? `<span class="pill sample-tag">${p.liveDemo ? 'Live demo' : 'Sample'}</span>` : ''}</div>` : ''}
   </button>`;
 }
 function render() {
@@ -718,7 +727,7 @@ async function renderDetail() {
   const cached = docCache.key === key ? docCache.html : '';
 
   $('#detailBody').innerHTML = `
-    <div class="d-head"><span class="d-fl">${esc(p.carrier)} ${esc(p.flightNo)}</span>${f && f.airline ? `<span class="d-airline">${esc(f.airline)}</span>` : ''}${p.demo ? '<span class="pill">Sample</span>' : ''}${st ? `<span class="pill ${st.tone}">${esc(st.label)}</span>` : ''}</div>
+    <div class="d-head"><span class="d-fl">${esc(p.carrier)} ${esc(p.flightNo)}</span>${f && f.airline ? `<span class="d-airline">${esc(f.airline)}</span>` : ''}${p.demo || p.liveDemo ? `<span class="pill">${p.liveDemo ? 'Live demo' : 'Sample'}</span>` : ''}${st ? `<span class="pill ${st.tone}">${esc(st.label)}</span>` : ''}</div>
     <p class="d-date">${esc(fmtDate(p.date, true))}</p>
     <div class="route">
       <span class="code">${esc(p.from || dep.iata || '···')}</span>${arcHTML(p)}<span class="code">${esc(p.to || arr.iata || '···')}</span>
@@ -1089,6 +1098,7 @@ async function openSettings() {
   $('#sKey').type = 'password';
   $('#btnShowKey').textContent = 'Show';
   $('#keyTestResult').hidden = true;
+  $('#liveDemoMsg').hidden = true;
   renderDemoTools();
   $('#dlgSettings').showModal();
   let info = 'Everything is stored only in this browser on this device.';
@@ -1324,7 +1334,7 @@ async function drawBoardingPass(L) {
   const [cv, ctx] = mkCanvas(W, H);
   ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = ink; ctx.fillRect(0, 0, W, 210);
-  txt(ctx, 'SKYWARD AIR', 56, 112, `700 68px ${CF}`, '#fff');
+  txt(ctx, (L.airline || 'Skyward Air').toUpperCase(), 56, 112, `700 68px ${CF}`, '#fff');
   txt(ctx, 'Boarding pass', 56, 162, `500 30px ${BF}`, 'rgba(255,255,255,.78)');
   txt(ctx, 'Economy Light, group 2', W - 56, 162, `500 30px ${BF}`, 'rgba(255,255,255,.78)', 'right');
   txt(ctx, 'Passenger', 56, 292, `500 26px ${BF}`, mut);
@@ -1350,7 +1360,7 @@ async function drawBoardingPass(L) {
   cell(2, 0, 'Departs', mockHM(S, c.from.off));
   cell(0, 1, 'Boarding', mockHM(S - 40 * MIN, c.from.off));
   cell(1, 1, 'Gate', 'TBA');
-  cell(2, 1, 'Seat', '14C');
+  cell(2, 1, 'Seat', L.seat || '14C');
   cell(0, 2, 'Zone', '2');
   cell(1, 2, 'Sequence', '047');
   cell(2, 2, 'Terminal', c.from.term);
@@ -1359,9 +1369,9 @@ async function drawBoardingPass(L) {
   ctx.fillStyle = '#E9EEF1';
   ctx.beginPath(); ctx.arc(0, 1170, 30, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(W, 1170, 30, 0, Math.PI * 2); ctx.fill();
-  fauxPdf417(ctx, 56, 1225, W - 112, 160, num === 'ZZ482' ? 482 : 483);
+  fauxPdf417(ctx, 56, 1225, W - 112, 160, L.seed || (num === 'ZZ482' ? 482 : 483));
   txt(ctx, PNR, W / 2, 1440, `700 44px ${CF}`, ink, 'center');
-  txt(ctx, 'Fictional pass from Gatepass demo mode. The barcode is not real.', W / 2, 1478, `500 22px ${BF}`, mut, 'center');
+  txt(ctx, L.note || 'Fictional pass from Gatepass demo mode. The barcode is not real.', W / 2, 1478, `500 22px ${BF}`, mut, 'center');
   watermark(ctx, W, H);
   return canvasBlob(cv);
 }
@@ -1471,6 +1481,7 @@ function renderDemoTools() {
   const t = new Date(mockNow());
   $('#demoClockLabel').textContent = t.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + (DEMO.offset ? `, ${fmtDur(DEMO.offset / MIN)} ahead` : '');
   renderDemoLog();
+  renderLiveDemo();
 }
 $('#sDemo').onchange = async (e) => {
   DEMO.on = e.target.checked;
@@ -1491,6 +1502,91 @@ $('#btnDemoRemove').onclick = async () => { await removeSamples(); renderDemoToo
 $('#sFault').onchange = (e) => { DEMO.fault = e.target.value; };
 document.querySelectorAll('[data-adv]').forEach((b) => { b.onclick = () => advanceClock(Number(b.dataset.adv)); });
 $('#btnClockReset').onclick = () => advanceClock(0);
+
+/* ---------- Live demo: track a real, random flight with made-up passenger details ---------- */
+const LIVE_HUBS = ['LHR', 'AMS', 'FRA', 'CDG', 'MAD', 'IST', 'DXB', 'DOH', 'SIN', 'HND', 'ICN', 'SYD', 'JFK', 'ATL', 'ORD', 'LAX', 'YYZ', 'GRU', 'JNB', 'MEX'];
+const shuffled = (a) => a.map((x) => [Math.random(), x]).sort((m, n) => m[0] - n[0]).map((x) => x[1]);
+// GET against the real service. Returns parsed JSON, or null when nothing was found.
+async function liveGet(path) {
+  const res = await fetch(`https://${API_HOST}${path}`, { headers: { 'X-RapidAPI-Key': apiKey, 'X-RapidAPI-Host': API_HOST } });
+  if (res.status === 204 || res.status === 404) return null;
+  if (res.status === 401 || res.status === 403) throw new Error('Your AeroDataBox key was rejected. Use Test key above, and make sure you’re subscribed to the API on RapidAPI.');
+  if (res.status === 429) throw new Error('You’ve reached the API request limit. Try again later.');
+  if (!res.ok) throw new Error(`The flight service returned an error (${res.status}). Try again later.`);
+  return res.json();
+}
+function renderLiveDemo() {
+  $('#btnLiveRemove').hidden = !passes.some((p) => p.liveDemo);
+}
+async function addLiveDemo() {
+  const btn = $('#btnLiveAdd'), out = $('#liveDemoMsg');
+  const say = (msg, color) => { out.textContent = msg; out.style.color = color; out.hidden = false; };
+  if (!apiKey) { say('Save your API key above first.', 'var(--warn)'); return; }
+  if (!navigator.onLine) { say('You’re offline. Connect to the internet to find a live flight.', 'var(--warn)'); return; }
+  btn.disabled = true; btn.textContent = 'Finding a flight…'; out.hidden = true;
+  try {
+    let found = null;
+    // Look at a few random hubs: departures from an hour ago to six hours ahead, so the flight is boarding, in the air, or about to be.
+    for (const code of shuffled(LIVE_HUBS).slice(0, 4)) {
+      say(`Looking at departures from ${code}…`, 'var(--muted)');
+      const body = await liveGet(`/flights/airports/iata/${code}?offsetMinutes=-60&durationMinutes=360&direction=Departure&withLeg=false&withCancelled=false&withCodeshared=false&withCargo=false&withPrivate=false&withLocation=false`);
+      const list = ((body && body.departures) || []).filter((x) => x && x.number && !x.isCargo && !/cancel/i.test(x.status || ''));
+      for (const item of shuffled(list).slice(0, 3)) {
+        const num = String(item.number).replace(/\s+/g, '').toUpperCase();
+        const m = /^([A-Z0-9]{2})(\d{1,4}[A-Z]?)$/.exec(num);
+        if (!m) continue;
+        const day = localDay(tm(item.movement || item.departure, 'scheduled')) || todayISO();
+        const res = await liveGet(`/flights/number/${num}/${day}?withAircraftImage=false&withLocation=false`);
+        const arr = Array.isArray(res) ? res : res ? [res] : [];
+        const f = arr.find((x) => x.departure && x.departure.airport && x.departure.airport.iata === code) || arr[0];
+        if (!f) continue;
+        const data = normalize(f);
+        if (data.dep.iata && data.arr.iata && utcMs(data.dep.sched) && data.dep.sched.local) { found = { m, data }; break; }
+      }
+      if (found) break;
+    }
+    if (!found) { say('Couldn’t find a suitable flight just now. Try again.', 'var(--warn)'); return; }
+
+    const { m, data } = found;
+    const S = utcMs(data.dep.sched);
+    const off = (Date.parse(data.dep.sched.local.slice(0, 16).replace(' ', 'T') + 'Z') - S) / 3600e3 || 0;
+    const seat = `${10 + Math.floor(Math.random() * 30)}${'ABCDEF'[Math.floor(Math.random() * 6)]}`;
+    const depTime = hm(data.dep.sched);
+    const blob = await drawBoardingPass({
+      num: m[1] + m[2], airline: 'Gatepass Demo', seat, S, seed: Math.floor(Math.random() * 1e6),
+      note: 'Fictional pass from the Gatepass live demo. The barcode is not real.',
+      c: {
+        from: { iata: data.dep.iata, city: data.dep.city || data.dep.name || data.dep.iata, off, term: data.dep.terminal || '-' },
+        to: { iata: data.arr.iata, city: data.arr.city || data.arr.name || data.arr.iata },
+      },
+    });
+    const fileId = await saveFile(blob, `Live demo boarding pass ${m[1]}${m[2]}.png`);
+    const p = {
+      id: uid(), createdAt: Date.now(), liveDemo: true, carrier: m[1], flightNo: m[2], date: localDay(data.dep.sched),
+      from: data.dep.iata, to: data.arr.iata, depTime, boardingTime: shiftHM(depTime, -40),
+      seat, gate: '', passenger: 'Avery Northcott', pnr: PNR, fileId, ticketFileId: null,
+      flight: { fetchedAt: Date.now(), data, source: 'live' },
+    };
+    await DB.put('passes', p);
+    passes.push(p);
+    render(); renderLiveDemo(); persistStorage();
+    say(`Tracking ${m[1]} ${m[2]}, ${p.from} to ${p.to}. Close Settings to see it.`, 'var(--ok)');
+  } catch (e) {
+    say(e instanceof TypeError ? 'Couldn’t reach the flight service. Check your connection and try again.' : e.message, 'var(--bad)');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Track a random live flight';
+  }
+}
+async function removeLiveDemo() {
+  const mine = passes.filter((p) => p.liveDemo);
+  passes = passes.filter((p) => !p.liveDemo);
+  for (const p of mine) await DB.del('passes', p.id);
+  for (const p of mine) { await deleteFileIfOrphan(p.fileId, p.id); await deleteFileIfOrphan(p.ticketFileId, p.id); }
+  if ($('#dlgDetail').open && mine.some((p) => p.id === detailId)) $('#dlgDetail').close();
+  render(); renderLiveDemo();
+}
+$('#btnLiveAdd').onclick = addLiveDemo;
+$('#btnLiveRemove').onclick = async () => { await removeLiveDemo(); $('#liveDemoMsg').hidden = true; toast('Live demo flights removed.'); };
 
 /* ---------- Misc ---------- */
 let toastTimer;
